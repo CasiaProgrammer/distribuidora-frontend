@@ -2,6 +2,16 @@
   <div>
     <h2>Reportes</h2>
 
+    <div v-if="cargando" class="text-center py-4">
+      <div class="spinner-border text-primary"></div>
+      <p class="mt-2 text-muted">Cargando datos...</p>
+      </div>
+
+      <div v-if="error" class="alert alert-warning d-flex align-items-center justify-content-between">
+        <span>⚠️ No se pudieron cargar los datos. El servidor puede estar iniciando.</span>
+        <button class="btn btn-sm btn-warning" @click="cargar">Reintentar</button>
+      </div>
+
     <ul class="nav nav-tabs mb-4">
       <li class="nav-item">
         <a class="nav-link" :class="{ active: tab === 'ventas' }" @click="tab = 'ventas'" href="#">Ventas</a>
@@ -341,23 +351,34 @@ const filtrarPorFecha = (items: any[], campo: string, mes: string, anio: number)
   })
 }
 
+const cargando = ref(false)
+const error = ref(false)
+
 const cargar = async () => {
-  const [p, u, pr, c, co, vi, ve] = await Promise.all([
-    axios.get(`${API}/pedidos`),
-    axios.get(`${API}/usuarios`),
-    axios.get(`${API}/productos`),
-    axios.get(`${API}/comisiones`),
-    axios.get(`${API}/combustible`),
-    axios.get(`${API}/viaticos`),
-    axios.get(`${API}/vehiculos`)
-  ])
-  pedidos.value = p.data
-  usuarios.value = u.data
-  productos.value = pr.data
-  comisiones.value = c.data
-  combustibles.value = co.data
-  viaticos.value = vi.data
-  vehiculos.value = ve.data
+  cargando.value = true
+  error.value = false
+  try {
+    const [p, u, pr, c, co, vi, ve] = await Promise.all([
+      axios.get(`${API}/pedidos`),
+      axios.get(`${API}/usuarios`),
+      axios.get(`${API}/productos`),
+      axios.get(`${API}/comisiones`),
+      axios.get(`${API}/combustible`),
+      axios.get(`${API}/viaticos`),
+      axios.get(`${API}/vehiculos`)
+    ])
+    pedidos.value = p.data
+    usuarios.value = u.data
+    productos.value = pr.data
+    comisiones.value = c.data
+    combustibles.value = co.data
+    viaticos.value = vi.data
+    vehiculos.value = ve.data
+  } catch (e) {
+    error.value = true
+  } finally {
+    cargando.value = false
+  }
 }
 
 // VENTAS
@@ -473,5 +494,13 @@ const viaticosSeries = computed(() => usuarios.value.map(u =>
   viaticosFiltrados.value.filter(v => v.usuario_id === u.id && v.estado === 'aprobado').reduce((a, v) => a + Number(v.monto), 0)
 ))
 
-onMounted(cargar)
+onMounted(async () => {
+  try {
+    await cargar()
+  } catch {
+    setTimeout(async () => {
+      await cargar()
+    }, 5000)
+  }
+})
 </script>

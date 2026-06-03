@@ -24,7 +24,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="u in usuarios" :key="u.id">
+          <tr v-for="u in paginado" :key="u.id">
             <td>{{ u.id }}</td>
             <td>{{ u.nombre }}</td>
             <td>{{ u.email }}</td>
@@ -37,11 +37,26 @@
         </tbody>
       </table>
     </div>
+
+    <nav v-if="totalPaginas > 1">
+      <ul class="pagination pagination-sm">
+        <li class="page-item" :class="{ disabled: paginaActual === 1 }">
+          <button class="page-link" @click="paginaActual--">‹</button>
+        </li>
+        <li class="page-item" v-for="p in totalPaginas" :key="p" :class="{ active: p === paginaActual }">
+          <button class="page-link" @click="paginaActual = p">{{ p }}</button>
+        </li>
+        <li class="page-item" :class="{ disabled: paginaActual === totalPaginas }">
+          <button class="page-link" @click="paginaActual++">›</button>
+        </li>
+      </ul>
+    </nav>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
 const API = import.meta.env.VITE_API_URL
@@ -49,6 +64,14 @@ const usuarios = ref([])
 const showForm = ref(false)
 const editando = ref(false)
 const form = ref({ id: 0, nombre: '', email: '', password: '', rol: 'vendedor' })
+const paginaActual = ref(1)
+const porPagina = 10
+
+const totalPaginas = computed(() => Math.ceil(usuarios.value.length / porPagina))
+const paginado = computed(() => {
+  const inicio = (paginaActual.value - 1) * porPagina
+  return usuarios.value.slice(inicio, inicio + porPagina)
+})
 
 const limpiarForm = () => {
   form.value = { id: 0, nombre: '', email: '', password: '', rol: 'vendedor' }
